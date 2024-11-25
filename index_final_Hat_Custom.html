@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Product Customizer</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Helvetica, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2em;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .product {
+            position: relative;
+            width: 30em;
+            height: 30em;
+            box-shadow: 0 0 2em rgba(0, 0, 0, 0.2);
+            border-radius: 1em;
+            overflow: hidden;
+            background-color: white;
+        }
+
+        .img-1 {
+            width: 100%;
+            z-index: 0;
+        }
+
+        .img-2 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .color {
+            background: #ff0000;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: multiply;
+        }
+
+        .text-overlay,
+        .clipart-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .draggable {
+            position: absolute;
+            cursor: move;
+            pointer-events: all;
+        }
+
+        .resize-handle {
+            width: 10px;
+            height: 10px;
+            background-color: blue;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            cursor: se-resize;
+        }
+
+        button,
+        input,
+        select {
+            margin: 0.5em 0;
+            padding: 0.5em;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="product">
+        <img src="hat1.png" class="img-1" alt="Hat base image" />
+        <img src="hat2.png" class="img-2" alt="Hat overlay image" />
+        <div class="color"></div>
+        <div class="text-overlay"></div>
+        <div class="clipart-overlay"></div>
+    </div>
+
+    <div>
+        <h1>Hat Customizer</h1>
+        <p>Customize your hat with colors, text, and clipart!</p>
+
+        <label>
+            <b>Customize hat color:</b><br>
+            <input type="color" class="color-input" value="#ff0000" />
+        </label><br><br>
+
+        <label>
+            <b>Add Text:</b><br>
+            <input type="text" class="text-input" placeholder="Enter your text" />
+        </label><br><br>
+
+        <label>
+            <b>Font Size:</b><br>
+            <input type="number" class="font-size-input" value="20" min="10" max="100" />
+        </label><br><br>
+
+        <label>
+            <b>Font Color:</b><br>
+            <input type="color" class="font-color-input" value="#ffffff" />
+        </label><br><br>
+
+        <label>
+            <b>Font Face:</b><br>
+            <select class="font-face-input">
+                <option value="Arial">Arial</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Times New Roman">Times New Roman</option>
+            </select>
+        </label><br><br>
+
+        <button class="add-text-btn">Add Text</button><br><br>
+
+        <label>
+            <b>Add Clipart:</b><br>
+            <input type="file" class="clipart-input" accept="image/*" />
+        </label><br><br>
+
+        <button class="clear-btn">Clear</button>
+    </div>
+
+    <script>
+        // Select elements
+        const colorInput = document.querySelector('.color-input');
+        const colorOverlay = document.querySelector('.color');
+        const textInput = document.querySelector('.text-input');
+        const fontSizeInput = document.querySelector('.font-size-input');
+        const fontColorInput = document.querySelector('.font-color-input');
+        const fontFaceInput = document.querySelector('.font-face-input');
+        const addTextBtn = document.querySelector('.add-text-btn');
+        const clipartInput = document.querySelector('.clipart-input');
+        const clearBtn = document.querySelector('.clear-btn');
+        const textOverlay = document.querySelector('.text-overlay');
+        const clipartOverlay = document.querySelector('.clipart-overlay');
+
+        let isResizing = false;
+        let currentElement = null;
+
+        // Change hat color
+        colorInput.addEventListener('input', () => {
+            colorOverlay.style.backgroundColor = colorInput.value;
+        });
+
+        // Clear all customizations
+        clearBtn.addEventListener('click', () => {
+            textOverlay.innerHTML = '';
+            clipartOverlay.innerHTML = '';
+            colorOverlay.style.backgroundColor = '#ff0000'; // Reset to default color
+        });
+
+        function addResizeHandle(element) {
+            const resizeHandle = document.createElement('div');
+            resizeHandle.classList.add('resize-handle');
+            element.appendChild(resizeHandle);
+
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isResizing = true;
+                currentElement = element;
+            });
+        }
+
+        function makeDraggable(element) {
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            addResizeHandle(element);
+
+            element.addEventListener('mousedown', (e) => {
+                if (!isResizing) {
+                    isDragging = true;
+                    const rect = element.getBoundingClientRect();
+                    offsetX = e.clientX - rect.left;
+                    offsetY = e.clientY - rect.top;
+                    element.style.cursor = 'grabbing';
+                }
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const productRect = document.querySelector('.product').getBoundingClientRect();
+                    const elementRect = element.getBoundingClientRect();
+
+                    const newLeft = Math.max(productRect.left, Math.min(e.pageX - offsetX, productRect.right - elementRect.width));
+                    const newTop = Math.max(productRect.top, Math.min(e.pageY - offsetY, productRect.bottom - elementRect.height));
+
+                    element.style.left = `${newLeft - productRect.left}px`;
+                    element.style.top = `${newTop - productRect.top}px`;
+                }
+
+                if (isResizing && currentElement) {
+                    const rect = currentElement.getBoundingClientRect();
+                    if (currentElement.classList.contains('clipart')) {
+                        const img = currentElement.querySelector('img') || currentElement;
+                        const newWidth = Math.max(10, e.pageX - rect.left);
+                        const aspectRatio = img.naturalHeight / img.naturalWidth || 1;
+                        img.style.width = `${newWidth}px`;
+                        img.style.height = `${newWidth * aspectRatio}px`;
+                    } else if (currentElement.classList.contains('draggable-text')) {
+                        const newFontSize = Math.max(10, Math.min(100, e.pageY - rect.top));
+                        currentElement.style.fontSize = `${newFontSize}px`;
+                    }
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+                currentElement = null;
+                element.style.cursor = 'move';
+            });
+        }
+
+        addTextBtn.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (!text) return;
+
+            const fontSize = fontSizeInput.value;
+            const fontColor = fontColorInput.value;
+            const fontFace = fontFaceInput.value;
+
+            const textElement = document.createElement('div');
+            textElement.textContent = text;
+            textElement.style.color = fontColor;
+            textElement.style.fontSize = `${fontSize}px`;
+            textElement.style.fontFamily = fontFace;
+            textElement.style.position = 'absolute';
+            textElement.style.top = '50%';
+            textElement.style.left = '50%';
+            textElement.style.transform = 'translate(-50%, -50%)';
+            textElement.classList.add('draggable', 'draggable-text');
+            textOverlay.appendChild(textElement);
+
+            makeDraggable(textElement);
+        });
+
+        clipartInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const container = document.createElement('div');
+                    container.classList.add('draggable', 'clipart');
+                    container.style.position = 'absolute';
+                    container.style.top = '50%';
+                    container.style.left = '50%';
+                    container.style.transform = 'translate(-50%, -50%)';
+
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.style.width = '100px';
+                    container.appendChild(img);
+
+                    clipartOverlay.appendChild(container);
+                    makeDraggable(container);
+                };
+                reader.readAsDataURL(file);
+            }
+        }); 
+    </script>
+</body>
+
+</html>
